@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WirelessPaper — Spotify Auth</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #111;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 480px;
+      width: 100%;
+    }
+    h1 { font-size: 1.3em; margin-bottom: 6px; }
+    .sub { color: #888; font-size: 0.9em; margin-bottom: 28px; }
+
+    .step { margin-bottom: 20px; }
+    .step-label {
+      font-size: 0.75em;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* code box */
+    .code-box {
+      background: #0d0d0d;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 0.85em;
+      word-break: break-all;
+      color: #6cf;
+      position: relative;
+    }
+    .code-box.big {
+      font-size: 1em;
+      color: #fff;
+      background: #0a1a0a;
+      border-color: #1a4a1a;
+    }
+    #code-text { display: block; }
+
+    .copy-btn {
+      margin-top: 12px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 0.9em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: #2a2a2a; }
+    .copy-btn.copied { color: #6f6; border-color: #2a4a2a; }
+
+    .arrow {
+      text-align: center;
+      color: #555;
+      font-size: 1.4em;
+      margin: 4px 0;
+    }
+
+    .device-url {
+      color: #6af;
+      word-break: break-all;
+    }
+
+    .error-box {
+      background: #1a0a0a;
+      border: 1px solid #4a1a1a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: #f88;
+      font-size: 0.9em;
+    }
+
+    #waiting {
+      text-align: center;
+      color: #666;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>📄 WirelessPaper</h1>
+  <div class="sub">Spotify authorisation helper</div>
+
+  <div id="waiting">Reading auth code…</div>
+  <div id="content" style="display:none">
+
+    <div class="step">
+      <div class="step-label">Step 1 — Your auth code</div>
+      <div class="code-box big">
+        <span id="code-text">…</span>
+      </div>
+      <button class="copy-btn" id="copy-btn" onclick="copyCode()">Copy code</button>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="step">
+      <div class="step-label">Step 2 — Paste it here</div>
+      <div class="code-box">
+        Open your device's web UI, go to<br>
+        <span class="device-url" id="device-url">http://&lt;device-ip&gt;/spotify/manual</span>
+        <br>and paste the code there.
+      </div>
+    </div>
+
+    <div class="arrow">↓</div>
+
+    <div class="step">
+      <div class="step-label">Step 3 — Done</div>
+      <div class="code-box">
+        The device will exchange the code for tokens and start polling Spotify. You can close this tab.
+      </div>
+    </div>
+
+  </div>
+
+  <div id="error-content" style="display:none">
+    <div class="error-box" id="error-msg"></div>
+  </div>
+</div>
+
+<script>
+  // Extract query params
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const error = params.get('error');
+  const state = params.get('state'); // may contain device IP
+
+  document.getElementById('waiting').style.display = 'none';
+
+  if (error) {
+    document.getElementById('error-content').style.display = 'block';
+    document.getElementById('error-msg').textContent =
+      'Spotify returned an error: ' + error +
+      (params.get('error_description') ? ' — ' + params.get('error_description') : '');
+  } else if (code) {
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('code-text').textContent = code;
+
+    // If device IP was passed in state param, show direct link
+    if (state && state.startsWith('192.') || state && state.startsWith('10.') || state && state.startsWith('172.')) {
+      const url = 'http://' + state + '/spotify/manual';
+      const el = document.getElementById('device-url');
+      el.textContent = url;
+      el.innerHTML = '<a href="' + url + '" style="color:#6af">' + url + '</a>';
+    }
+  } else {
+    document.getElementById('error-content').style.display = 'block';
+    document.getElementById('error-msg').textContent =
+      'No code or error in the URL. Did Spotify redirect here correctly?';
+  }
+
+  function copyCode() {
+    const code = document.getElementById('code-text').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy code';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
