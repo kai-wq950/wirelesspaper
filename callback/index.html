@@ -1,190 +1,147 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WirelessPaper — Spotify Auth</title>
+  <title>WirelessPaper · Spotify auth</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #111;
-      color: #eee;
+      margin: 0;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px;
+      background: #111;
+      color: #eee;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .card {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 480px;
+      max-width: 440px;
       width: 100%;
-    }
-    h1 { font-size: 1.3em; margin-bottom: 6px; }
-    .sub { color: #888; font-size: 0.9em; margin-bottom: 28px; }
-
-    .step { margin-bottom: 20px; }
-    .step-label {
-      font-size: 0.75em;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: #888;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    /* code box */
-    .code-box {
-      background: #0d0d0d;
+      background: #1c1c1c;
       border: 1px solid #2a2a2a;
-      border-radius: 10px;
-      padding: 14px 16px;
-      font-family: monospace;
-      font-size: 0.85em;
-      word-break: break-all;
-      color: #6cf;
-      position: relative;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
     }
-    .code-box.big {
-      font-size: 1em;
-      color: #fff;
-      background: #0a1a0a;
-      border-color: #1a4a1a;
-    }
-    #code-text { display: block; }
-
-    .copy-btn {
-      margin-top: 12px;
-      background: #222;
-      color: #eee;
-      border: 1px solid #444;
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    p { margin: 8px 0; color: #aaa; }
+    .ok    { color: #6fbf6f; }
+    .warn  { color: #e8b55a; }
+    .err   { color: #e85a5a; }
+    .code  {
+      background: #0b0b0b;
+      border: 1px solid #2a2a2a;
       border-radius: 8px;
-      padding: 9px 18px;
-      font-size: 0.9em;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .copy-btn:hover { background: #2a2a2a; }
-    .copy-btn.copied { color: #6f6; border-color: #2a4a2a; }
-
-    .arrow {
-      text-align: center;
-      color: #555;
-      font-size: 1.4em;
-      margin: 4px 0;
-    }
-
-    .device-url {
-      color: #6af;
+      padding: 10px 12px;
+      font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
       word-break: break-all;
+      color: #ddd;
+      text-align: left;
+      margin: 16px 0;
     }
-
-    .error-box {
-      background: #1a0a0a;
-      border: 1px solid #4a1a1a;
+    .btn {
+      display: inline-block;
+      background: #2c2c2c;
+      color: #eee;
+      border: 1px solid #3a3a3a;
       border-radius: 10px;
-      padding: 14px 16px;
-      color: #f88;
-      font-size: 0.9em;
+      padding: 10px 18px;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 6px 3px;
+      cursor: pointer;
     }
-
-    #waiting {
-      text-align: center;
-      color: #666;
-      padding: 20px 0;
+    .btn.primary { background: #1db954; border-color: #1db954; color: #fff; }
+    .btn:hover   { filter: brightness(1.1); }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #3a3a3a;
+      border-top-color: #eee;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 6px;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-<div class="card">
-  <h1>📄 WirelessPaper</h1>
-  <div class="sub">Spotify authorisation helper</div>
-
-  <div id="waiting">Reading auth code…</div>
-  <div id="content" style="display:none">
-
-    <div class="step">
-      <div class="step-label">Step 1 — Your auth code</div>
-      <div class="code-box big">
-        <span id="code-text">…</span>
-      </div>
-      <button class="copy-btn" id="copy-btn" onclick="copyCode()">Copy code</button>
-    </div>
-
-    <div class="arrow">↓</div>
-
-    <div class="step">
-      <div class="step-label">Step 2 — Paste it here</div>
-      <div class="code-box">
-        Open your device's web UI, go to<br>
-        <span class="device-url" id="device-url">http://&lt;device-ip&gt;/spotify/manual</span>
-        <br>and paste the code there.
-      </div>
-    </div>
-
-    <div class="arrow">↓</div>
-
-    <div class="step">
-      <div class="step-label">Step 3 — Done</div>
-      <div class="code-box">
-        The device will exchange the code for tokens and start polling Spotify. You can close this tab.
-      </div>
-    </div>
-
+  <div class="card" id="card">
+    <h1 id="title"><span class="spinner"></span>Connecting to your device…</h1>
+    <p id="sub">Forwarding the auth code back to WirelessPaper.</p>
+    <div id="manual" style="display:none"></div>
   </div>
-
-  <div id="error-content" style="display:none">
-    <div class="error-box" id="error-msg"></div>
-  </div>
-</div>
 
 <script>
-  // Extract query params
-  const params = new URLSearchParams(window.location.search);
-  const code  = params.get('code');
-  const error = params.get('error');
-  const state = params.get('state'); // may contain device IP
+(function () {
+  // ── Parse URL parameters ─────────────────────────────────────────────────
+  const qs    = new URLSearchParams(window.location.search);
+  const code  = qs.get("code");
+  const state = qs.get("state");
+  const err   = qs.get("error");
 
-  document.getElementById('waiting').style.display = 'none';
+  const title  = document.getElementById("title");
+  const sub    = document.getElementById("sub");
+  const manual = document.getElementById("manual");
 
-  if (error) {
-    document.getElementById('error-content').style.display = 'block';
-    document.getElementById('error-msg').textContent =
-      'Spotify returned an error: ' + error +
-      (params.get('error_description') ? ' — ' + params.get('error_description') : '');
-  } else if (code) {
-    document.getElementById('content').style.display = 'block';
-    document.getElementById('code-text').textContent = code;
-
-    // If device IP was passed in state param, show direct link
-    if (state && state.startsWith('192.') || state && state.startsWith('10.') || state && state.startsWith('172.')) {
-      const url = 'http://' + state + '/spotify/manual';
-      const el = document.getElementById('device-url');
-      el.textContent = url;
-      el.innerHTML = '<a href="' + url + '" style="color:#6af">' + url + '</a>';
-    }
-  } else {
-    document.getElementById('error-content').style.display = 'block';
-    document.getElementById('error-msg').textContent =
-      'No code or error in the URL. Did Spotify redirect here correctly?';
+  // ── Error case: user hit Cancel on Spotify ──────────────────────────────
+  if (err) {
+    title.innerHTML = '<span class="err">✗</span> Auth cancelled';
+    sub.textContent = "Spotify returned: " + err;
+    return;
   }
 
-  function copyCode() {
-    const code = document.getElementById('code-text').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-      const btn = document.getElementById('copy-btn');
-      btn.textContent = '✓ Copied!';
-      btn.classList.add('copied');
-      setTimeout(() => {
-        btn.textContent = 'Copy code';
-        btn.classList.remove('copied');
-      }, 2000);
-    });
+  // ── Sanity: need both code and state ────────────────────────────────────
+  if (!code) {
+    title.innerHTML = '<span class="err">✗</span> Missing code';
+    sub.textContent = "The auth redirect came back without a code parameter. Try again from the device.";
+    return;
   }
+  if (!state) {
+    title.innerHTML = '<span class="warn">⚠</span> Missing device return address';
+    sub.textContent = "Spotify did not return the device-return URL. Try again from the device.";
+    return;
+  }
+
+  // ── Validate the state looks like a device-local URL ────────────────────
+  // We accept only http:// URLs that parse cleanly. This stops the page from
+  // open-redirecting to arbitrary sites if someone crafts a weird auth URL.
+  let target;
+  try {
+    target = new URL(state);
+  } catch (e) {
+    title.innerHTML = '<span class="err">✗</span> Invalid return URL';
+    sub.textContent = "The device-return URL couldn't be parsed.";
+    return;
+  }
+  if (target.protocol !== "http:") {
+    title.innerHTML = '<span class="err">✗</span> Rejected non-http return URL';
+    sub.textContent = "Safety check: only http:// LAN URLs are allowed.";
+    return;
+  }
+
+  // ── Build the forward URL: <state>?code=<code> ──────────────────────────
+  target.searchParams.set("code", code);
+  const forwardTo = target.toString();
+
+  // ── Give the user a manual option in case auto-forward gets blocked ─────
+  manual.style.display = "block";
+  manual.innerHTML =
+    '<p style="margin-top:18px">If nothing happens in a second, tap below:</p>' +
+    '<p><a class="btn primary" href="' + forwardTo + '">Continue to device</a></p>' +
+    '<p class="code">' + forwardTo + '</p>';
+
+  // ── Auto-forward after a short delay so the user sees the status ────────
+  setTimeout(function () {
+    window.location.replace(forwardTo);
+  }, 600);
+})();
 </script>
 </body>
 </html>
